@@ -8,7 +8,6 @@ import random
 
 
 #hyper parameters
- 
 GAMMA = 0.99
 BATCH_SIZE = 32
 BUFFER_SIZE = 50000
@@ -18,7 +17,6 @@ EPSILON_END = 0.02
 
 #decay period where epsilon_start will reach epsilon_end over these many steps
 EPSILON_DECAY = 10000 
-
 TARGET_UPDATE_FREQ = 1000
 
 class Network(nn.Module):
@@ -44,7 +42,7 @@ class Network(nn.Module):
         max_q_index = torch.argmax(q_values, dim=1)[0]
         return max_q_index.detach().item()
 
-env = gym.make('CartPole-v1', render_mode="rgb_array")
+env = gym.make('CartPole-v1')
 rew_buffer = deque([0.0], maxlen=100) 
 replay_buffer = deque(maxlen=BUFFER_SIZE)
 
@@ -54,7 +52,7 @@ optimizer = torch.optim.Adam(online_net.parameters(),lr=5e-4)
 
 target_net.load_state_dict(online_net.state_dict())
 
-state, _ = env.reset()
+state = env.reset()
 reward_sum = 0
 
 def select_action(epsilon, Qnet, state):
@@ -71,12 +69,12 @@ def select_action(epsilon, Qnet, state):
 
 for _ in range(MIN_REPLAY_SIZE):
     action = env.action_space.sample()
-    next_state, reward, done, _,_ =  env.step(action)
+    next_state, reward, done, _ =  env.step(action)
     replay_buffer.append((state, action, reward, next_state, done))
     state = next_state
     
     if done:
-        state, _ = env.reset()
+        state = env.reset()
         
 for step in itertools.count():
     epsilon = np.interp(step, [0,EPSILON_DECAY],[EPSILON_START,EPSILON_END])
@@ -88,13 +86,13 @@ for step in itertools.count():
     else:
         action = online_net.act(state)
     
-    next_state, reward, done, _, _ =  env.step(action)
+    next_state, reward, done, _ =  env.step(action)
     replay_buffer.append((state, action, reward, next_state, done))
     state = next_state
     reward_sum += reward
     
     if done:
-        state, _ = env.reset()
+        state = env.reset()
         rew_buffer.append(reward_sum)
         reward_sum = 0
         
@@ -103,7 +101,7 @@ for step in itertools.count():
             print("RENDERING")
             while True:
                 action = online_net.act(state)
-                state, _, done, _, _ =  env.step(action)
+                state, _, done, _ =  env.step(action)
                 #env.render()
                 env.render()
                 if done:
